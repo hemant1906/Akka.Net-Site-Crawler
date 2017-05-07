@@ -24,7 +24,6 @@ namespace AKKA_Crawler
 
             siteSupervisor.Tell(PoisonPill.Instance);
 
-            MyActorSystem.WhenTerminated.Wait();
 
             Console.ReadLine();
             
