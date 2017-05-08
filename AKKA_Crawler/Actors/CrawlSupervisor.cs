@@ -11,34 +11,38 @@ namespace AKKA_Crawler.Actors
 
         protected override void OnReceive(object message)
         {
-         
-            if(message is CrawlSite)
+
+            if (message is CrawlSite)
             {
-				var msg = message as CrawlSite;
-                if(crawlers.ContainsKey(msg.SiteUrl))
+                var msg = message as CrawlSite;
+                if (crawlers.ContainsKey(msg.SiteUrl))
                 {
                     //print that url already crawled/crawling
                 }
                 else
                 {
-                    
-                    IActorRef crawlActor =  Context.ActorOf( Props.Create<SiteCrawler>(() => new SiteCrawler()));
+
+                    IActorRef crawlActor = Context.ActorOf(Props.Create<SiteCrawler>(() => new SiteCrawler()));
                     crawlers.Add(msg.SiteUrl, crawlActor);
                     crawlActor.Tell(new CrawlSite(msg.SiteUrl));
                 }
-                
+
             }
-            else if(message is IndexComplete)
+            else if (message is IndexComplete)
             {
-                
+
             }
-            else if(message is CrawlComplete)
+            else if (message is CrawlComplete)
             {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Crawling Over");
+                Console.ResetColor();
+                Context.Stop(crawlers[((CrawlComplete)message).SiteUrl]);
                 
             }
             else if (message is CrawlFailure)
             {
-                
+
             }
         }
     }

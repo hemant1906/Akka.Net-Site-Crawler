@@ -4,8 +4,8 @@ using AKKA_Crawler.Messages;
 
 namespace AKKA_Crawler.Actors
 {
-	public class PageScrapResult
-	{
+    public class PageScrapResult
+    {
         public StartScrapping Page { get; private set; }
         public HttpStatusCode StatusCode { get; private set; }
         public Stream Result { get; private set; }
@@ -17,10 +17,10 @@ namespace AKKA_Crawler.Actors
             this.StatusCode = statusCode;
         }
 
-        public PageScrapResult(StartScrapping page, HttpStatusCode statusCode, Stream result) : this( page,  statusCode)
-		{
+        public PageScrapResult(StartScrapping page, HttpStatusCode statusCode, Stream result) : this(page, statusCode)
+        {
 
-			this.Result = result;
-		}
-	}
+            this.Result = result;
+        }
+    }
 }

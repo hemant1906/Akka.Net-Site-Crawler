@@ -6,7 +6,7 @@ namespace AKKA_Crawler.Actors
     {
         protected override void OnReceive(object message)
         {
-         
+
         }
     }
 }

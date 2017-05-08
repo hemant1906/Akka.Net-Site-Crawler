@@ -4,13 +4,13 @@ namespace AKKA_Crawler.Messages
 {
     public class PageScrapped
     {
-        public PageScrapped(string pageName, HtmlDocument pageContent )
+        public PageScrapped(string pageName, string[] pageContent)
         {
             PageName = pageName;
-            PageContent = pageContent;
+            ChildPages = pageContent;
         }
 
-        public string PageName {  get; private set; }
-        public HtmlDocument PageContent { get; private set; }
+        public string PageName { get; private set; }
+        public string[] ChildPages { get; private set; }
     }
 }

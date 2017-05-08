@@ -16,17 +16,17 @@ namespace AKKA_Crawler
             IActorRef siteSupervisor =
                 MyActorSystem.ActorOf(Props.Create(() => new CrawlSupervisor()));
 
-            siteSupervisor.Tell(new CrawlSite("http://www.landisgyr.com/"));
+            // siteSupervisor.Tell(new CrawlSite("http://www.landisgyr.com/"));
+            //  siteSupervisor.Tell(new CrawlSite("http://www.smallsites.com/"));
+            siteSupervisor.Tell(new CrawlSite("http://www.hcl.com/"));
+
 
             MyActorSystem.WhenTerminated.Wait(TimeSpan.FromMinutes(5));
 
             Console.WriteLine("System Terminated or Time Over");
 
-            siteSupervisor.Tell(PoisonPill.Instance);
-
-
             Console.ReadLine();
-            
+
         }
     }
 }
