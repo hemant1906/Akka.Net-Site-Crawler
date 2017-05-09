@@ -28,16 +28,14 @@ namespace AKKA_Crawler.Actors
                 }
 
             }
-            else if (message is IndexComplete)
-            {
-
-            }
             else if (message is CrawlComplete)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Crawling Over");
+                var msg = message as CrawlComplete;
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine("Crawling Over for {0}",msg.SiteUrl);
                 Console.ResetColor();
                 Context.Stop(crawlers[((CrawlComplete)message).SiteUrl]);
+                Context.Stop(crawlers[msg.SiteUrl]);
                 
             }
             else if (message is CrawlFailure)

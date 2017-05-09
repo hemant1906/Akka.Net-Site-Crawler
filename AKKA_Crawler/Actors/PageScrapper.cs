@@ -6,6 +6,7 @@ using System.Net;
 using AKKA_Crawler.Messages;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.IO;
 
 namespace AKKA_Crawler.Actors
 {
@@ -16,10 +17,19 @@ namespace AKKA_Crawler.Actors
         {
             _httpClient = new HttpClient();
 
+            Dictionary<string, string> restrictedExtensions = new Dictionary<string, string>();
+
+            restrictedExtensions.Add(".zip", null);
+            restrictedExtensions.Add(".pdf", null);
+            restrictedExtensions.Add(".doc", null);
+            restrictedExtensions.Add(".docx", null);
+            restrictedExtensions.Add(".xls", null);
+            restrictedExtensions.Add(".xlsx", null);
+
 
             Receive<StartScrapping>(page =>
            {
-               // print message   
+               Console.WriteLine("Start scrapping {0}", page.PageToScrap);
 
                Uri myUri = new Uri(page.PageToScrap);
 
@@ -30,8 +40,8 @@ namespace AKKA_Crawler.Actors
                   {
                       var response = httpRequest.Result;
 
-                  //successful img download
-                  if (response.StatusCode == HttpStatusCode.OK)
+                      //successful  download
+                      if (response.StatusCode == HttpStatusCode.OK)
                       {
                           var contentStream = response.Content.ReadAsStreamAsync();
                           try
@@ -40,7 +50,7 @@ namespace AKKA_Crawler.Actors
                               return new PageScrapResult(page, response.StatusCode, contentStream.Result);
                           }
                           catch //timeout exceptions!
-                      {
+                          {
                               return new PageScrapResult(page, HttpStatusCode.PartialContent);
                           }
                       }
@@ -78,12 +88,13 @@ namespace AKKA_Crawler.Actors
                                 HtmlAttribute att = link.Attributes["href"];
                                 if (att != null)
                                 {
-                                    if (att.Value.StartsWith("http", StringComparison.CurrentCulture)  && Uri.IsWellFormedUriString(att.Value, UriKind.Absolute))
+                                    if (att.Value.StartsWith("http", StringComparison.CurrentCulture) && Uri.IsWellFormedUriString(att.Value, UriKind.Absolute))
                                     {
-                                        
+
                                         Uri myUri = new Uri(att.Value);
                                         string linkhost = myUri.Host;
-                                        if (linkhost == host)  // restrict the crawl within the host
+                                        var extention = Path.GetExtension(att.Value);
+                                        if (!restrictedExtensions.ContainsKey(extention) && linkhost == host)  // restrict the crawl within the host
                                         {
                                             childLinks.Add(att.Value);
                                         }
@@ -94,7 +105,7 @@ namespace AKKA_Crawler.Actors
                     }
                     catch
                     {
-                        Console.WriteLine("Unable to parse child urls"); 
+                        Console.WriteLine("Unable to parse child urls");
                     }
 
 

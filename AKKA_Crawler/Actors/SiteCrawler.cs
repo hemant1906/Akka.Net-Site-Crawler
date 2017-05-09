@@ -12,6 +12,10 @@ namespace AKKA_Crawler.Actors
         int ScrappedPages = 0;
         int FailedPages = 0;
         string _site;
+        
+        
+
+        List<string> success = new List<string>();
         Dictionary<string, IActorRef> childActors = new Dictionary<string, IActorRef>();
 
         private void CreateChidActor(string childUrl)
@@ -34,7 +38,8 @@ namespace AKKA_Crawler.Actors
                             Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine("Exception occured processing a child. Stopping");
                             Console.ResetColor();
-                            return Directive.Resume; // We could have checked inner exception but for simplicity we are keeping it
+                            FailedPages++;
+                            return Directive.Stop; // We could have checked inner exception but for simplicity we are keeping it
                         }
                         else
                         {
@@ -43,6 +48,7 @@ namespace AKKA_Crawler.Actors
                             Console.WriteLine("Exception occured processing a child. Restarting");
                             Console.ResetColor();
                             return Directive.Restart;
+                          
                         }
                     }
                 )
@@ -71,7 +77,6 @@ namespace AKKA_Crawler.Actors
                 _site = scrapMessage.SiteUrl;
                 AddPage(scrapMessage.SiteUrl);
                 CreateChidActor(scrapMessage.SiteUrl);
-                PagesToScrap[scrapMessage.SiteUrl] += 1;
 
                 Console.ResetColor();
                 Console.WriteLine("{0} Started for {1} times", scrapMessage.SiteUrl, PagesToScrap[scrapMessage.SiteUrl]);
@@ -79,9 +84,10 @@ namespace AKKA_Crawler.Actors
             else if (message is PageScrapped)
             {
                 ScrappedPages++;
+                
                 var scrappedPage = message as PageScrapped;
                 Console.WriteLine("{0} Scrap Complete", scrappedPage.PageName);
-
+                success.Add(scrappedPage.PageName);
                 Context.Stop(childActors[scrappedPage.PageName]);
 
 
@@ -122,10 +128,9 @@ namespace AKKA_Crawler.Actors
                 }
             }
 
-            Console.WriteLine(PagesToScrap.Count - (ScrappedPages + FailedPages));// debugging only need to remove it
 
 
-            if ((ScrappedPages + FailedPages) == PagesToScrap.Count)
+            if ((ScrappedPages + FailedPages) == childActors.Count)
                 Context.Parent.Tell(new CrawlComplete(_site));
         }
 
