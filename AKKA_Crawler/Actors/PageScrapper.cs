@@ -47,15 +47,15 @@ namespace AKKA_Crawler.Actors
                           try
                           {
                               contentStream.Wait(TimeSpan.FromSeconds(1));
-                              return new PageScrapResult(page, response.StatusCode, contentStream.Result);
+                              return new PageScrapResult(page.PageToScrap, response.StatusCode, contentStream.Result);
                           }
                           catch //timeout exceptions!
                           {
-                              return new PageScrapResult(page, HttpStatusCode.PartialContent);
+                              return new PageScrapResult(page.PageToScrap, HttpStatusCode.PartialContent);
                           }
                       }
 
-                      return new PageScrapResult(page, response.StatusCode);
+                      return new PageScrapResult(page.PageToScrap, response.StatusCode);
                   },
                     TaskContinuationOptions.ExecuteSynchronously)
                    .PipeTo(Self);
@@ -75,7 +75,7 @@ namespace AKKA_Crawler.Actors
                     List<string> childLinks = new List<string>();
                     try
                     {
-                        Uri uri = new Uri(scrapResult.Page.PageToScrap);
+                        Uri uri = new Uri(scrapResult.Page);
                         var host = uri.Host;
 
                         var links = document.DocumentNode.SelectNodes("//a[@href]");
@@ -109,11 +109,11 @@ namespace AKKA_Crawler.Actors
                     }
 
 
-                    Context.Parent.Tell(new PageScrapped(scrapResult.Page.PageToScrap, childLinks.ToArray()));
+                    Context.Parent.Tell(new PageScrapped(scrapResult.Page, childLinks.ToArray()));
                 }
                 else
                 {
-                    Context.Parent.Tell(new ScrappingError(scrapResult.Page.PageToScrap));
+                    Context.Parent.Tell(new ScrappingError(scrapResult.Page));
                 }
             }
 
