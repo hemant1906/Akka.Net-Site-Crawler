@@ -2,6 +2,7 @@
 using Akka.Actor;
 using AKKA_Crawler.Messages;
 using System.Collections.Generic;
+using Akka.Routing;
 using HtmlAgilityPack;
 
 namespace AKKA_Crawler.Actors
@@ -12,19 +13,19 @@ namespace AKKA_Crawler.Actors
         int ScrappedPages = 0;
         int FailedPages = 0;
         string _site;
-        
-        
+
+        IActorRef _parent;
 
         List<string> success = new List<string>();
-        Dictionary<string, IActorRef> childActors = new Dictionary<string, IActorRef>();
 
-        private void CreateChidActor(string childUrl)
+        readonly ActorSelection router;
+
+
+        public SiteCrawler()
         {
-            var pageScrapper = Context.ActorOf(Props.Create<PageScrapper>());
-            childActors.Add(childUrl, pageScrapper);
-            pageScrapper.Tell(new StartScrapping(childUrl));
-            PagesToScrap[childUrl] += 1;
+            router = Context.System.ActorSelection("akka.tcp://ScrapperServer@localhost:8080/user/scrapper");
         }
+
 
         protected override SupervisorStrategy SupervisorStrategy()
         {
@@ -65,7 +66,8 @@ namespace AKKA_Crawler.Actors
             {
                 var scrapMessage = message as StartScrapping;
                 AddPage(scrapMessage.PageToScrap);
-                CreateChidActor(scrapMessage.PageToScrap);
+                router.Tell(new StartScrapping(scrapMessage.PageToScrap, Self));
+                PagesToScrap[scrapMessage.PageToScrap] += 1;
 
                 Console.ResetColor();
                 Console.WriteLine("{0} Started for {1} times", scrapMessage.PageToScrap, PagesToScrap[scrapMessage.PageToScrap]);
@@ -74,9 +76,15 @@ namespace AKKA_Crawler.Actors
             {
 
                 var scrapMessage = message as CrawlSite;
+
+                _parent = scrapMessage.Parent;
+
                 _site = scrapMessage.SiteUrl;
                 AddPage(scrapMessage.SiteUrl);
-                CreateChidActor(scrapMessage.SiteUrl);
+
+
+                router.Tell(new StartScrapping(_site, Self));
+                PagesToScrap[_site] += 1;
 
                 Console.ResetColor();
                 Console.WriteLine("{0} Started for {1} times", scrapMessage.SiteUrl, PagesToScrap[scrapMessage.SiteUrl]);
@@ -88,7 +96,7 @@ namespace AKKA_Crawler.Actors
                 var scrappedPage = message as PageScrapped;
                 Console.WriteLine("{0} Scrap Complete", scrappedPage.PageName);
                 success.Add(scrappedPage.PageName);
-                Context.Stop(childActors[scrappedPage.PageName]);
+
 
 
                 int childPages = 0;
@@ -98,7 +106,8 @@ namespace AKKA_Crawler.Actors
                     if (AddPage(url))
                     {
                         childPages++;
-                        CreateChidActor(url);
+                        router.Tell(new StartScrapping(url, Self));
+                        PagesToScrap[url] += 1;
                     }
                 }
 
@@ -114,7 +123,7 @@ namespace AKKA_Crawler.Actors
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Error scrapping {0}. Trying again", msg.Url);
                     Console.ResetColor();
-                    childActors[msg.Url].Tell(new StartScrapping(msg.Url));
+                    router.Tell(new StartScrapping(msg.Url,Self));
                     PagesToScrap[msg.Url] += 1;
                 }
                 else
@@ -122,16 +131,14 @@ namespace AKKA_Crawler.Actors
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Error scrapping {0}. Stopping", msg.Url);
                     Console.ResetColor();
-                    Context.Stop(childActors[msg.Url]);
-
                     FailedPages++;
                 }
             }
 
 
 
-            if ((ScrappedPages + FailedPages) == childActors.Count)
-                Context.Parent.Tell(new CrawlComplete(_site));
+            if ((ScrappedPages + FailedPages) == PagesToScrap.Count)
+               _parent.Tell(new CrawlComplete(_site));
         }
 
         private bool AddPage(string page)

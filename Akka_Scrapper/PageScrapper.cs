@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 
-namespace AKKA_Crawler.Actors
+namespace AKKA_Scrapper.Actors
 {
     public class PageScrapper : ReceiveActor
     {
@@ -29,6 +29,7 @@ namespace AKKA_Crawler.Actors
 
             Receive<StartScrapping>(page =>
            {
+              var name = page.Parent;
                Console.WriteLine("Start scrapping {0}", page.PageToScrap);
 
                Uri myUri = new Uri(page.PageToScrap);
@@ -47,15 +48,15 @@ namespace AKKA_Crawler.Actors
                           try
                           {
                               contentStream.Wait(TimeSpan.FromSeconds(1));
-                              return new PageScrapResult(page.PageToScrap, response.StatusCode, contentStream.Result);
+                              return new PageScrapResult(page.PageToScrap, response.StatusCode, contentStream.Result,name);
                           }
                           catch //timeout exceptions!
                           {
-                              return new PageScrapResult(page.PageToScrap, HttpStatusCode.PartialContent);
+                              return new PageScrapResult(page.PageToScrap, HttpStatusCode.PartialContent,name);
                           }
                       }
 
-                      return new PageScrapResult(page.PageToScrap, response.StatusCode);
+                      return new PageScrapResult(page.PageToScrap, response.StatusCode,name);
                   },
                     TaskContinuationOptions.ExecuteSynchronously)
                    .PipeTo(Self);
@@ -67,6 +68,7 @@ namespace AKKA_Crawler.Actors
 
             Receive<PageScrapResult>(scrapResult =>
             {
+                var parent = scrapResult.Parent;
                 if (scrapResult.StatusCode == HttpStatusCode.OK)
                 {
                     HtmlDocument document = new HtmlDocument();
@@ -109,16 +111,19 @@ namespace AKKA_Crawler.Actors
                     }
 
 
-                    Context.Parent.Tell(new PageScrapped(scrapResult.Page, childLinks.ToArray()));
+                    parent.Tell(new PageScrapped(scrapResult.Page, childLinks.ToArray()));
                 }
                 else
                 {
-                    Context.Parent.Tell(new ScrappingError(scrapResult.Page));
+
+                    parent.Tell(new ScrappingError(scrapResult.Page));
                 }
             }
 
                                      );
 
         }
+
+
     }
 }

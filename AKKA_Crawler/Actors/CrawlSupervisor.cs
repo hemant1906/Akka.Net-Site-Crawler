@@ -22,9 +22,10 @@ namespace AKKA_Crawler.Actors
                 else
                 {
 
-                    IActorRef crawlActor = Context.ActorOf(Props.Create<SiteCrawler>(() => new SiteCrawler()));
+                    //    IActorRef crawlActor = Context.ActorOf(Props.Create<SiteCrawler>(() => new SiteCrawler()));
+                    IActorRef crawlActor = Context.System.ActorOf<SiteCrawler>();
                     crawlers.Add(msg.SiteUrl, crawlActor);
-                    crawlActor.Tell(new CrawlSite(msg.SiteUrl));
+                    crawlActor.Tell(new CrawlSite(msg.SiteUrl,Self));
                 }
 
             }
@@ -42,6 +43,7 @@ namespace AKKA_Crawler.Actors
             {
 
             }
+           
         }
     }
 }

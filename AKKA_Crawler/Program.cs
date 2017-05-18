@@ -2,6 +2,7 @@
 using Akka.Actor;
 using AKKA_Crawler.Actors;
 using AKKA_Crawler.Messages;
+using Akka.Configuration;
 
 namespace AKKA_Crawler
 {
@@ -9,26 +10,34 @@ namespace AKKA_Crawler
     {
         public static void Main(string[] args)
         {
-            var MyActorSystem = ActorSystem.Create("MyFirstActorSystem");
+            var config = ConfigurationFactory.ParseString(@"
+            akka {
+                actor {
+                         provider = ""Akka.Remote.RemoteActorRefProvider,Akka.Remote""
+                    }
 
-            Console.WriteLine("Starting Actor System");
+                 remote {
+             dot-netty.tcp {
+                        port = 8090
+                        hostname = localhost
+                    }
+                }
+               }");
 
-            IActorRef siteSupervisor =
-                MyActorSystem.ActorOf(Props.Create(() => new CrawlSupervisor()));
+            using(var system = ActorSystem.Create("CrawlerClient",config))
+            {
+
+                IActorRef siteSupervisor =
+                  system.ActorOf(Props.Create(() => new CrawlSupervisor()));
+
+
+                //  //  siteSupervisor.Tell(new CrawlSite("http://www.smallsites.com/"));
+                 siteSupervisor.Tell(new CrawlSite("http://www.hcl.com/",siteSupervisor));
+                  siteSupervisor.Tell(new CrawlSite("https://www.infosys.com/",siteSupervisor));
+                Console.ReadLine();
+            }
 
            
-            //  siteSupervisor.Tell(new CrawlSite("http://www.smallsites.com/"));
-            siteSupervisor.Tell(new CrawlSite("http://www.hcl.com/"));
-            siteSupervisor.Tell(new CrawlSite("https://www.infosys.com/"));
-          //  siteSupervisor.Tell(new CrawlSite("https://www.tcs.com"));
- 
-
-
-             MyActorSystem.WhenTerminated.Wait(TimeSpan.FromMinutes(5));
-
-            Console.WriteLine("System Terminated or Time Over");
-
-            Console.ReadLine();
 
         }
     }
